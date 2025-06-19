@@ -1,7 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8138001996:AAG38l2QkbgP4lnyuan7HXcPu1ar3blFzKs"
+TOKEN = "8138001996:AAHZk7W_0oE1tCiyMmOaf-o_2sQfmR_WD6g"
 ADMIN_CHAT_ID = 7137869037  # ប្ដូរជាមួយ chat_id របស់ UserAdmin
 
 # Start Command
