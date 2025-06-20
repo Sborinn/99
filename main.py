@@ -1,7 +1,21 @@
-#https://api.telegram.org/bot<8138001996:AAHZk7W_0oE1tCiyMmOaf-o_2sQfmR_WD6g>/setwebhook?url=https://yourapp.onrender.com/webhook/<8138001996:AAHZk7W_0oE1tCiyMmOaf-o_2sQfmR_WD6g>
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
+    CallbackQueryHandler,
+    ConversationHandler,
+)
+from telegram.error import TelegramError
+import uuid
+import sqlite3
+import datetime
+import os # For getting environment variables like PORT
+from flask import Flask, request # Import Flask for webhook setup
+import asyncio
+import threading # For running Telegram Application in a separate thread
 TOKEN = "8138001996:AAHZk7W_0oE1tCiyMmOaf-o_2sQfmR_WD6g"
 ADMIN_CHAT_ID = 7137869037  # ប្ដូរជាមួយ chat_id របស់ UserAdmin
 
