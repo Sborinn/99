@@ -105,7 +105,7 @@ def get_summary(chat_id):
 def send_welcome(message):
     """Handles /start and /help commands."""
     welcome_text = (
-        "👋 សួស្តី! ខ្ញុំជា Bot សម្រាប់កត់ត្រាចំណាយ។\n\n"
+        "👋 សួស្តី! ខ្ញុំជា Bot សម្រាប់កត់ត្រាចំណូល។\n\n"
         "👉 **របៀបប្រើប្រាស់:**\n"
         "1. **Forward** សារពីធនាគារ (ABA, ACLEDA) មកកាន់ខ្ញុំ។\n"
         "2. ខ្ញុំនឹងកត់ត្រាចំនួនទឹកប្រាក់ដោយស្វ័យប្រវត្តិ។\n"
@@ -116,7 +116,8 @@ def send_welcome(message):
 
 
 @bot.message_handler(commands=['reset'])
-@bot.message_handler(regexp="🔄 លុបទិន្នន័យ \(Reset\)")
+# FIX: Use a raw string (r"...") to prevent SyntaxWarning
+@bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ \(Reset\)")
 def handle_reset(message):
     """Clears all transaction data for the user."""
     if message.chat.id in transactions:
@@ -128,7 +129,8 @@ def handle_reset(message):
     bot.reply_to(message, reply_text, reply_markup=create_main_keyboard())
 
 
-@bot.message_handler(regexp="🏦 សរុបទាំងអស់ \(All\)")
+# FIX: Use a raw string (r"...") to prevent SyntaxWarning
+@bot.message_handler(regexp=r"🏦 សរុបទាំងអស់ \(All\)")
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
@@ -157,4 +159,3 @@ def handle_transaction_message(message):
 # --- Start the Bot ---
 print("🤖 Bot is running...")
 bot.infinity_polling()
-
