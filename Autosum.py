@@ -49,12 +49,10 @@ def create_main_keyboard():
     """Creates the main reply keyboard."""
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
-    btn_reset = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
-    # ===== NEW BUTTON ADDED HERE =====
     btn_clear = KeyboardButton("🗑️ សម្អាត (Clear)")
     
-    markup.add(btn_all, btn_reset)
-    markup.add(btn_clear) # Add the new button on a new row
+    # The "Reset" button has been removed.
+    markup.add(btn_all, btn_clear) 
     return markup
 
 
@@ -120,17 +118,7 @@ def send_welcome(message):
     bot.send_message(message.chat.id, welcome_text, reply_markup=create_main_keyboard())
 
 
-@bot.message_handler(commands=['reset'])
-@bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ \(Reset\)")
-def handle_reset(message):
-    """Clears all transaction data for the user."""
-    if message.chat.id in transactions:
-        transactions.pop(message.chat.id)
-        save_data(transactions)  # Save changes to file
-        reply_text = "✅ ទិន្នន័យទាំងអស់របស់អ្នកត្រូវបានលុបចោល។"
-    else:
-        reply_text = "ℹ️ អ្នកមិនមានទិន្នន័យសម្រាប់លុបទេ។"
-    bot.reply_to(message, reply_text, reply_markup=create_main_keyboard())
+# ===== The "handle_reset" function has been removed. =====
 
 
 @bot.message_handler(regexp=r"🏦 សរុបទាំងអស់ \(All\)")
@@ -140,7 +128,6 @@ def summary_all(message):
     bot.reply_to(message, f"🏦 សរុបទាំងអស់:\n៛ {khr:,.0f}\n$ {usd:,.2f}")
 
 
-# ===== NEW HANDLER ADDED HERE =====
 @bot.message_handler(regexp=r"🗑️ សម្អាត \(Clear\)")
 def handle_clear(message):
     """'Clears' the screen by re-sending the welcome message."""
@@ -177,7 +164,7 @@ def handle_transaction_message(message):
     else:
         # Improved User Experience: Respond to messages that are not transactions or buttons.
         # ===== UPDATED LIST OF BUTTONS =====
-        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)", "🗑️ សម្អាត (Clear)"]
+        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🗑️ សម្អាត (Clear)"]
         if message.text not in button_texts:
             bot.reply_to(message, "🤔 ខ្ញុំមិនយល់សារនេះទេ។ សូមបញ្ជូនសារប្រតិបត្តិការពីធនាគារ។\n(I didn't understand that. Please forward a transaction message.)")
 
