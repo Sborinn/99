@@ -118,12 +118,8 @@ def send_welcome(message):
 
 
 @bot.message_handler(commands=['reset'])
-# ===== FIX STARTS HERE =====
-# The regular expression was updated to correctly match the emoji "🔄".
-# The old code had a broken character '?' here, which caused the button to fail.
 @bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ \(Reset\)")
 def handle_reset(message):
-# ===== FIX ENDS HERE =====
     """Clears all transaction data for the user."""
     # First, determine the reply text
     if message.chat.id in transactions:
@@ -147,7 +143,8 @@ def handle_reset(message):
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
-    summary_text = f"🏦 សរុបទាំងអស់:\n៛ {khr:,.0f}\n$ {usd:,.2f}"
+    # ===== CHANGE: Numbers are now wrapped in backticks (`) for monospace font =====
+    summary_text = f"🏦 សរុបទាំងអស់:\n៛ `{khr:,.0f}`\n$ `{usd:,.2f}`"
     
     # Delete the user's command message and then send the summary
     try:
@@ -155,7 +152,8 @@ def summary_all(message):
     except Exception as e:
         print(f"Could not delete message {message.message_id} in chat {message.chat.id}. Error: {e}")
     
-    bot.send_message(message.chat.id, summary_text)
+    # ===== CHANGE: Added parse_mode='Markdown' to render the monospace font =====
+    bot.send_message(message.chat.id, summary_text, parse_mode='Markdown')
 
 
 @bot.message_handler(func=lambda m: True)
@@ -177,7 +175,7 @@ def handle_transaction_message(message):
                 print(f"Could not delete message for chat {chat_id}. Error: {e}")
     else:
         # Improved User Experience: Respond to messages that are not transactions or buttons.
-        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄លុបទិន្នន័យ (Reset)"]
+        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)"]
         if message.text not in button_texts:
             bot.reply_to(message, "🤔 ខ្ញុំមិនយល់សារនេះទេ។ សូមបញ្ជូនសារប្រតិបត្តិការពីធនាគារ។\n(I didn't understand that. Please forward a transaction message.)")
 
@@ -185,5 +183,3 @@ def handle_transaction_message(message):
 # --- Start the Bot ---
 print("🤖 Bot is running...")
 bot.infinity_polling()
-
-
