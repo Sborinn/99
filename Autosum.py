@@ -39,19 +39,21 @@ transactions = load_data()
 
 
 # --- Regex Patterns ---
-riel_pattern = re.compile(r"៛([\d,]+)")
-usd_pattern = re.compile(r"\$([\d,.]+)")
+# ===== CHANGE: Added \s* to allow for optional spaces after currency symbols =====
+riel_pattern = re.compile(r"៛\s*([\d,]+)")
+usd_pattern = re.compile(r"\$\s*([\d,.]+)")
 # This pattern is now un-anchored (no '^') and non-greedy (.*?) to find all occurrences
 aba_khr_pattern = re.compile(r"([\d,]+)\s+paid by.*?KHQR", re.IGNORECASE | re.DOTALL)
-payway_pattern = re.compile(r"PayWay by ABA.*?៛([\d,]+)\s+paid by", re.IGNORECASE | re.DOTALL)
+# ===== CHANGE: Added \s* to the PayWay pattern as well for consistency =====
+payway_pattern = re.compile(r"PayWay by ABA.*?៛\s*([\d,]+)\s+paid by", re.IGNORECASE | re.DOTALL)
 time_pattern = re.compile(r"\[(.*?)\]")
 
 
 def create_main_keyboard():
     """Creates the main reply keyboard."""
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
     btn_reset = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
+    btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
     
     markup.add(btn_all, btn_reset) 
     return markup
@@ -138,7 +140,7 @@ def send_welcome(message):
 
 
 @bot.message_handler(commands=['reset'])
-@bot.message_handler(regexp=r"� លុបទិន្នន័យ \(Reset\)")
+@bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ \(Reset\)")
 def handle_reset(message):
     """Clears all transaction data for the user."""
     if message.chat.id in transactions:
