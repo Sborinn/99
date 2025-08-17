@@ -167,6 +167,7 @@ def summary_all(message):
         f"🏦 សរុបទាំងអស់:\n"
         f"`៛ {khr:,.0f}`\n"
         f"`$ {usd:,.2f}`\n"
+        "------------------------\n"
         f"លុយសរុប `៛ {total_in_khr:,.0f}`"
     )
     
@@ -207,3 +208,4 @@ def handle_transaction_message(message):
 # --- Start the Bot ---
 print("🤖 Bot is running...")
 bot.infinity_polling()
+
