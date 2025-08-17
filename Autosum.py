@@ -143,8 +143,8 @@ def handle_reset(message):
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
-    # ===== CHANGE: Numbers are now wrapped in backticks (`) for monospace font =====
-    summary_text = f"🏦 សរុបទាំងអស់:\n៛ `{khr:,.0f}`\n$ `{usd:,.2f}`"
+    # ===== CHANGE: Backticks (`) now wrap both the currency symbol and the number =====
+    summary_text = f"🏦 សរុបទាំងអស់:\n`៛ {khr:,.0f}`\n`$ {usd:,.2f}`"
     
     # Delete the user's command message and then send the summary
     try:
