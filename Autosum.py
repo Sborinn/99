@@ -49,7 +49,7 @@ def create_main_keyboard():
     """Creates the main reply keyboard."""
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
-    btn_reset = KeyboardButton("� លុបទិន្នន័យ (Reset)")
+    btn_reset = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
     
     markup.add(btn_all, btn_reset) 
     return markup
@@ -177,7 +177,7 @@ def handle_transaction_message(message):
                 print(f"Could not delete message for chat {chat_id}. Error: {e}")
     else:
         # Improved User Experience: Respond to messages that are not transactions or buttons.
-        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)"]
+        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄លុបទិន្នន័យ (Reset)"]
         if message.text not in button_texts:
             bot.reply_to(message, "🤔 ខ្ញុំមិនយល់សារនេះទេ។ សូមបញ្ជូនសារប្រតិបត្តិការពីធនាគារ។\n(I didn't understand that. Please forward a transaction message.)")
 
@@ -185,4 +185,5 @@ def handle_transaction_message(message):
 # --- Start the Bot ---
 print("🤖 Bot is running...")
 bot.infinity_polling()
+
 
