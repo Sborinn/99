@@ -8,7 +8,7 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 # --- Configuration ---
 
 # 1. Securely get the token from an environment variable
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("8053556928:AAHdY_7-UISDw5YoIZyCEM_t5zHultdSLnc")
 if not BOT_TOKEN:
     raise ValueError("Error: BOT_TOKEN environment variable not set.")
 
@@ -157,3 +157,4 @@ def handle_transaction_message(message):
 # --- Start the Bot ---
 print("🤖 Bot is running...")
 bot.infinity_polling()
+
