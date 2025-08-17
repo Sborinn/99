@@ -42,7 +42,6 @@ transactions = load_data()
 riel_pattern = re.compile(r"៛([\d,]+)")
 usd_pattern = re.compile(r"\$([\d,.]+)")
 aba_khr_pattern = re.compile(r"^([\d,]+)\s+paid by.*KHQR", re.IGNORECASE | re.DOTALL)
-# ===== NEW PATTERN ADDED HERE for PayWay messages =====
 payway_pattern = re.compile(r"PayWay by ABA.*?៛([\d,]+)\s+paid by", re.IGNORECASE | re.DOTALL)
 time_pattern = re.compile(r"\[(.*?)\]")
 
@@ -62,20 +61,21 @@ def parse_transaction(text):
     currency, amount = None, None
     trx_time = datetime.now()
 
-    match_aba_khr = aba_khr_pattern.search(text)
-    # Search for the new PayWay pattern
+    match_aba_khqr = aba_khr_pattern.search(text)
     match_payway = payway_pattern.search(text)
 
-    if match_aba_khr:
-        amount_str = match_aba_khr.group(1).replace(",", "")
-        amount = int(amount_str)
-        currency = "KHR"
-    # ===== NEW LOGIC BLOCK ADDED HERE to handle PayWay messages =====
-    elif match_payway:
+    # ===== LOGIC CHANGE: Check for the more specific PayWay format FIRST =====
+    # This ensures that PayWay messages are always handled by the correct logic.
+    if match_payway:
         amount_str = match_payway.group(1).replace(",", "")
         amount = int(amount_str)
         currency = "KHR"
+    elif match_aba_khqr:
+        amount_str = match_aba_khqr.group(1).replace(",", "")
+        amount = int(amount_str)
+        currency = "KHR"
     else:
+        # Fallback to generic patterns if the specific ones don't match
         match_riel = riel_pattern.search(text)
         if match_riel:
             amount_str = match_riel.group(1).replace(",", "")
@@ -139,7 +139,6 @@ def handle_reset(message):
     else:
         reply_text = "ℹ️ អ្នកមិនមានទិន្នន័យសម្រាប់លុបទេ។"
     
-    # ===== CHANGE: Delete the user's command message =====
     try:
         bot.delete_message(message.chat.id, message.message_id)
     except Exception as e:
@@ -153,16 +152,13 @@ def handle_reset(message):
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
-    # ===== CHANGE: Backticks (`) now wrap both the currency symbol and the number =====
     summary_text = f"🏦 សរុបទាំងអស់:\n`៛ {khr:,.0f}`\n`$ {usd:,.2f}`"
     
-    # Delete the user's command message and then send the summary
     try:
         bot.delete_message(message.chat.id, message.message_id)
     except Exception as e:
         print(f"Could not delete message {message.message_id} in chat {message.chat.id}. Error: {e}")
     
-    # ===== CHANGE: Added parse_mode='Markdown' to render the monospace font =====
     bot.send_message(message.chat.id, summary_text, parse_mode='Markdown')
 
 
