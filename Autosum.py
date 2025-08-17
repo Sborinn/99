@@ -49,7 +49,7 @@ def create_main_keyboard():
     """Creates the main reply keyboard."""
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
-    btn_reset = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
+    btn_reset = KeyboardButton("� លុបទិន្នន័យ (Reset)")
     
     markup.add(btn_all, btn_reset) 
     return markup
@@ -118,8 +118,12 @@ def send_welcome(message):
 
 
 @bot.message_handler(commands=['reset'])
-@bot.message_handler(regexp=r"� លុបទិន្នន័យ \(Reset\)")
+# ===== FIX STARTS HERE =====
+# The regular expression was updated to correctly match the emoji "🔄".
+# The old code had a broken character '?' here, which caused the button to fail.
+@bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ \(Reset\)")
 def handle_reset(message):
+# ===== FIX ENDS HERE =====
     """Clears all transaction data for the user."""
     # First, determine the reply text
     if message.chat.id in transactions:
@@ -181,3 +185,4 @@ def handle_transaction_message(message):
 # --- Start the Bot ---
 print("🤖 Bot is running...")
 bot.infinity_polling()
+�
