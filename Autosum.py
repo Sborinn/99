@@ -49,10 +49,9 @@ def create_main_keyboard():
     """Creates the main reply keyboard."""
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
-    btn_clear = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
+    btn_reset = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
     
-    # The "Reset" button has been removed.
-    markup.add(btn_all, btn_clear) 
+    markup.add(btn_all, btn_reset) 
     return markup
 
 
@@ -118,29 +117,41 @@ def send_welcome(message):
     bot.send_message(message.chat.id, welcome_text, reply_markup=create_main_keyboard())
 
 
-# ===== The "handle_reset" function has been removed. =====
+@bot.message_handler(commands=['reset'])
+@bot.message_handler(regexp=r"� លុបទិន្នន័យ \(Reset\)")
+def handle_reset(message):
+    """Clears all transaction data for the user."""
+    # First, determine the reply text
+    if message.chat.id in transactions:
+        transactions.pop(message.chat.id)
+        save_data(transactions)  # Save changes to file
+        reply_text = "✅ ទិន្នន័យទាំងអស់របស់អ្នកត្រូវបានលុបចោល។"
+    else:
+        reply_text = "ℹ️ អ្នកមិនមានទិន្នន័យសម្រាប់លុបទេ។"
+    
+    # ===== CHANGE: Delete the user's command message =====
+    try:
+        bot.delete_message(message.chat.id, message.message_id)
+    except Exception as e:
+        print(f"Could not delete message {message.message_id} in chat {message.chat.id}. Error: {e}")
+        
+    # Finally, send the confirmation as a new message
+    bot.send_message(message.chat.id, reply_text, reply_markup=create_main_keyboard())
 
 
 @bot.message_handler(regexp=r"🏦 សរុបទាំងអស់ \(All\)")
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
-    bot.reply_to(message, f"🏦 សរុបទាំងអស់:\n៛ {khr:,.0f}\n$ {usd:,.2f}")
-
-
-@bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ\(Reset\)")
-def handle_clear(message):
-    """Deletes the user's 'Clear' command message."""
-    # Note: A bot cannot delete the entire chat history for a user.
-    # This function only deletes the command message itself.
+    summary_text = f"🏦 សរុបទាំងអស់:\n៛ {khr:,.0f}\n$ {usd:,.2f}"
+    
+    # Delete the user's command message and then send the summary
     try:
-        # Delete the user's command message (e.g., "🗑️ សម្អាត (Clear)")
         bot.delete_message(message.chat.id, message.message_id)
     except Exception as e:
-        # It might fail if the bot doesn't have delete permissions, so we print and continue.
         print(f"Could not delete message {message.message_id} in chat {message.chat.id}. Error: {e}")
     
-    # The line to send a welcome message has been removed as per the user's request.
+    bot.send_message(message.chat.id, summary_text)
 
 
 @bot.message_handler(func=lambda m: True)
@@ -162,7 +173,6 @@ def handle_transaction_message(message):
                 print(f"Could not delete message for chat {chat_id}. Error: {e}")
     else:
         # Improved User Experience: Respond to messages that are not transactions or buttons.
-        # ===== UPDATED LIST OF BUTTONS =====
         button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)"]
         if message.text not in button_texts:
             bot.reply_to(message, "🤔 ខ្ញុំមិនយល់សារនេះទេ។ សូមបញ្ជូនសារប្រតិបត្តិការពីធនាគារ។\n(I didn't understand that. Please forward a transaction message.)")
@@ -171,4 +181,3 @@ def handle_transaction_message(message):
 # --- Start the Bot ---
 print("🤖 Bot is running...")
 bot.infinity_polling()
-
