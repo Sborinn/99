@@ -50,7 +50,11 @@ def create_main_keyboard():
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
     btn_reset = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
+    # ===== NEW BUTTON ADDED HERE =====
+    btn_clear = KeyboardButton("🗑️ សម្អាត (Clear)")
+    
     markup.add(btn_all, btn_reset)
+    markup.add(btn_clear) # Add the new button on a new row
     return markup
 
 
@@ -129,15 +133,28 @@ def handle_reset(message):
     bot.reply_to(message, reply_text, reply_markup=create_main_keyboard())
 
 
-# ===== FIX STARTS HERE =====
-# The regular expression was updated to correctly match the emoji "🏦".
-# The old code had a broken character here, which caused the button to fail.
 @bot.message_handler(regexp=r"🏦 សរុបទាំងអស់ \(All\)")
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
     bot.reply_to(message, f"🏦 សរុបទាំងអស់:\n៛ {khr:,.0f}\n$ {usd:,.2f}")
-# ===== FIX ENDS HERE =====
+
+
+# ===== NEW HANDLER ADDED HERE =====
+@bot.message_handler(regexp=r"🗑️ សម្អាត \(Clear\)")
+def handle_clear(message):
+    """'Clears' the screen by re-sending the welcome message."""
+    # Note: A bot cannot truly delete the entire chat history for a user.
+    # This function provides a clean slate by re-sending the main menu.
+    try:
+        # First, delete the user's command message (e.g., "🗑️ សម្អាត (Clear)")
+        bot.delete_message(message.chat.id, message.message_id)
+    except Exception as e:
+        # It might fail if the bot doesn't have delete permissions, so we print and continue.
+        print(f"Could not delete message {message.message_id} in chat {message.chat.id}. Error: {e}")
+    
+    # Then, send a fresh welcome message to create a 'clean' starting point.
+    send_welcome(message)
 
 
 @bot.message_handler(func=lambda m: True)
@@ -159,7 +176,8 @@ def handle_transaction_message(message):
                 print(f"Could not delete message for chat {chat_id}. Error: {e}")
     else:
         # Improved User Experience: Respond to messages that are not transactions or buttons.
-        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)"]
+        # ===== UPDATED LIST OF BUTTONS =====
+        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)", "🗑️ សម្អាត (Clear)"]
         if message.text not in button_texts:
             bot.reply_to(message, "🤔 ខ្ញុំមិនយល់សារនេះទេ។ សូមបញ្ជូនសារប្រតិបត្តិការពីធនាគារ។\n(I didn't understand that. Please forward a transaction message.)")
 
