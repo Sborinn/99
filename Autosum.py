@@ -39,27 +39,26 @@ transactions = load_data()
 
 
 # --- Regex Patterns ---
-# ===== CHANGE: Added \s* to allow for optional spaces after currency symbols =====
 riel_pattern = re.compile(r"៛\s*([\d,]+)")
 usd_pattern = re.compile(r"\$\s*([\d,.]+)")
-# This pattern is now un-anchored (no '^') and non-greedy (.*?) to find all occurrences
 aba_khr_pattern = re.compile(r"([\d,]+)\s+paid by.*?KHQR", re.IGNORECASE | re.DOTALL)
-# ===== CHANGE: Added \s* to the PayWay pattern as well for consistency =====
-payway_pattern = re.compile(r"PayWay by ABA.*?៛\s*([\d,]+)\s+paid by", re.IGNORECASE | re.DOTALL)
+# ===== CHANGE: Renamed to be more specific and added a new pattern for USD =====
+payway_khr_pattern = re.compile(r"PayWay by ABA.*?៛\s*([\d,]+)\s+paid by", re.IGNORECASE | re.DOTALL)
+payway_usd_pattern = re.compile(r"PayWay by ABA.*?\$\s*([\d,.]+)\s+paid by", re.IGNORECASE | re.DOTALL)
 time_pattern = re.compile(r"\[(.*?)\]")
 
 
 def create_main_keyboard():
     """Creates the main reply keyboard."""
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    btn_reset = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
     btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
+    btn_reset = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
     
     markup.add(btn_all, btn_reset) 
     return markup
 
 
-# ===== FUNCTION COMPLETELY REWRITTEN to handle multiple transactions in one message =====
+# ===== FUNCTION LOGIC UPDATED to handle mixed currency in PayWay messages =====
 def parse_transactions(text):
     """Parses text to find ALL transactions, sums them by currency, and returns a list of total transactions."""
     total_khr = 0
@@ -77,12 +76,19 @@ def parse_transactions(text):
         except ValueError:
             pass # Use datetime.now() if parsing fails
 
-    # 1. Find all specific "PayWay" transactions first.
-    payway_matches = payway_pattern.findall(remaining_text)
-    for amount_str in payway_matches:
+    # 1. Find all specific "PayWay" transactions first (both KHR and USD).
+    payway_khr_matches = payway_khr_pattern.findall(remaining_text)
+    for amount_str in payway_khr_matches:
         total_khr += int(amount_str.replace(",", ""))
-    # Remove these found transactions from the text to avoid double-counting
-    remaining_text = payway_pattern.sub("", remaining_text)
+
+    payway_usd_matches = payway_usd_pattern.findall(remaining_text)
+    for amount_str in payway_usd_matches:
+        total_usd += float(amount_str.replace(",", ""))
+        
+    # Remove all PayWay blocks from the text to avoid double-counting by generic patterns later
+    remaining_text = payway_khr_pattern.sub("", remaining_text)
+    remaining_text = payway_usd_pattern.sub("", remaining_text)
+
 
     # 2. Find all symbol-less "ABA KHQR" transactions from the remaining text.
     aba_khqr_matches = aba_khr_pattern.findall(remaining_text)
@@ -96,8 +102,8 @@ def parse_transactions(text):
     for amount_str in riel_matches:
         total_khr += int(amount_str.replace(",", ""))
 
-    # 4. Find all USD transactions. This can be done on the original text as it doesn't overlap with KHR.
-    usd_matches = usd_pattern.findall(text)
+    # 4. Find all other generic USD transactions ($) from what's left.
+    usd_matches = usd_pattern.findall(remaining_text)
     for amount_str in usd_matches:
         total_usd += float(amount_str.replace(",", ""))
 
@@ -172,28 +178,23 @@ def summary_all(message):
     bot.send_message(message.chat.id, summary_text, parse_mode='Markdown')
 
 
-# ===== HANDLER UPDATED to process a list of transactions =====
 @bot.message_handler(func=lambda m: True)
 def handle_transaction_message(message):
     """Main handler to process potential transaction messages."""
     chat_id = message.chat.id
-    # The function now returns a list of summed transactions (usually one for KHR, one for USD)
     found_transactions = parse_transactions(message.text)
 
     if found_transactions:
-        # Loop through the list and append each transaction
         for trx in found_transactions:
             transactions.setdefault(chat_id, []).append(trx)
         save_data(transactions)
 
-        # Automatically delete the forwarded message for privacy and cleanliness
         if message.forward_from or message.forward_from_chat:
             try:
                 bot.delete_message(chat_id, message.message_id)
             except Exception as e:
                 print(f"Could not delete message for chat {chat_id}. Error: {e}")
     else:
-        # Improved User Experience: Respond to messages that are not transactions or buttons.
         button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)"]
         if message.text not in button_texts:
             bot.reply_to(message, "🤔 ខ្ញុំមិនយល់សារនេះទេ។ សូមបញ្ជូនសារប្រតិបត្តិការពីធនាគារ។\n(I didn't understand that. Please forward a transaction message.)")
