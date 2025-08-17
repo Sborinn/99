@@ -117,7 +117,6 @@ def send_welcome(message):
 
 
 @bot.message_handler(commands=['reset'])
-# FIX: Use a raw string (r"...") to prevent SyntaxWarning
 @bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ \(Reset\)")
 def handle_reset(message):
     """Clears all transaction data for the user."""
@@ -130,12 +129,15 @@ def handle_reset(message):
     bot.reply_to(message, reply_text, reply_markup=create_main_keyboard())
 
 
-# FIX: Use a raw string (r"...") to prevent SyntaxWarning
-@bot.message_handler(regexp=r"� សរុបទាំងអស់ \(All\)")
+# ===== FIX STARTS HERE =====
+# The regular expression was updated to correctly match the emoji "🏦".
+# The old code had a broken character here, which caused the button to fail.
+@bot.message_handler(regexp=r"🏦 សរុបទាំងអស់ \(All\)")
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
     bot.reply_to(message, f"🏦 សរុបទាំងអស់:\n៛ {khr:,.0f}\n$ {usd:,.2f}")
+# ===== FIX ENDS HERE =====
 
 
 @bot.message_handler(func=lambda m: True)
@@ -155,6 +157,11 @@ def handle_transaction_message(message):
                 bot.delete_message(chat_id, message.message_id)
             except Exception as e:
                 print(f"Could not delete message for chat {chat_id}. Error: {e}")
+    else:
+        # Improved User Experience: Respond to messages that are not transactions or buttons.
+        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)"]
+        if message.text not in button_texts:
+            bot.reply_to(message, "🤔 ខ្ញុំមិនយល់សារនេះទេ។ សូមបញ្ជូនសារប្រតិបត្តិការពីធនាគារ។\n(I didn't understand that. Please forward a transaction message.)")
 
 
 # --- Start the Bot ---
