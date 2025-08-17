@@ -130,18 +130,17 @@ def summary_all(message):
 
 @bot.message_handler(regexp=r"🗑️ សម្អាត \(Clear\)")
 def handle_clear(message):
-    """'Clears' the screen by re-sending the welcome message."""
-    # Note: A bot cannot truly delete the entire chat history for a user.
-    # This function provides a clean slate by re-sending the main menu.
+    """Deletes the user's 'Clear' command message."""
+    # Note: A bot cannot delete the entire chat history for a user.
+    # This function only deletes the command message itself.
     try:
-        # First, delete the user's command message (e.g., "🗑️ សម្អាត (Clear)")
+        # Delete the user's command message (e.g., "🗑️ សម្អាត (Clear)")
         bot.delete_message(message.chat.id, message.message_id)
     except Exception as e:
         # It might fail if the bot doesn't have delete permissions, so we print and continue.
         print(f"Could not delete message {message.message_id} in chat {message.chat.id}. Error: {e}")
     
-    # Then, send a fresh welcome message to create a 'clean' starting point.
-    send_welcome(message)
+    # The line to send a welcome message has been removed as per the user's request.
 
 
 @bot.message_handler(func=lambda m: True)
