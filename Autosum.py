@@ -42,7 +42,6 @@ transactions = load_data()
 riel_pattern = re.compile(r"៛\s*([\d,]+)")
 usd_pattern = re.compile(r"\$\s*([\d,.]+)")
 aba_khr_pattern = re.compile(r"([\d,]+)\s+paid by.*?KHQR", re.IGNORECASE | re.DOTALL)
-# ===== CHANGE: Renamed to be more specific and added a new pattern for USD =====
 payway_khr_pattern = re.compile(r"PayWay by ABA.*?៛\s*([\d,]+)\s+paid by", re.IGNORECASE | re.DOTALL)
 payway_usd_pattern = re.compile(r"PayWay by ABA.*?\$\s*([\d,.]+)\s+paid by", re.IGNORECASE | re.DOTALL)
 time_pattern = re.compile(r"\[(.*?)\]")
@@ -58,25 +57,21 @@ def create_main_keyboard():
     return markup
 
 
-# ===== FUNCTION LOGIC UPDATED to handle mixed currency in PayWay messages =====
 def parse_transactions(text):
     """Parses text to find ALL transactions, sums them by currency, and returns a list of total transactions."""
     total_khr = 0
     total_usd = 0
     trx_time = datetime.now()
     
-    # Create a mutable copy of the text to work with
     remaining_text = text
 
-    # Extract time first from the original text
     match_time = time_pattern.search(text)
     if match_time:
         try:
             trx_time = datetime.strptime(match_time.group(1), "%m/%d/%Y %I:%M %p")
         except ValueError:
-            pass # Use datetime.now() if parsing fails
+            pass 
 
-    # 1. Find all specific "PayWay" transactions first (both KHR and USD).
     payway_khr_matches = payway_khr_pattern.findall(remaining_text)
     for amount_str in payway_khr_matches:
         total_khr += int(amount_str.replace(",", ""))
@@ -85,29 +80,22 @@ def parse_transactions(text):
     for amount_str in payway_usd_matches:
         total_usd += float(amount_str.replace(",", ""))
         
-    # Remove all PayWay blocks from the text to avoid double-counting by generic patterns later
     remaining_text = payway_khr_pattern.sub("", remaining_text)
     remaining_text = payway_usd_pattern.sub("", remaining_text)
 
-
-    # 2. Find all symbol-less "ABA KHQR" transactions from the remaining text.
     aba_khqr_matches = aba_khr_pattern.findall(remaining_text)
     for amount_str in aba_khqr_matches:
         total_khr += int(amount_str.replace(",", ""))
-    # Remove these as well
     remaining_text = aba_khr_pattern.sub("", remaining_text)
 
-    # 3. Find any other generic KHR transactions (៛) from what's left.
     riel_matches = riel_pattern.findall(remaining_text)
     for amount_str in riel_matches:
         total_khr += int(amount_str.replace(",", ""))
 
-    # 4. Find all other generic USD transactions ($) from what's left.
     usd_matches = usd_pattern.findall(remaining_text)
     for amount_str in usd_matches:
         total_usd += float(amount_str.replace(",", ""))
 
-    # --- Build the final list of transactions from the summed totals ---
     transactions_found = []
     time_iso = trx_time.isoformat()
 
@@ -168,7 +156,19 @@ def handle_reset(message):
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
-    summary_text = f"🏦 សរុបទាំងអស់:\n`៛ {khr:,.0f}`\n`$ {usd:,.2f}`"
+    
+    # ===== NEW CALCULATION ADDED HERE =====
+    # Convert USD to KHR and add to the existing KHR total.
+    # The exchange rate is fixed at 4000 KHR per USD.
+    total_in_khr = khr + (usd * 4000)
+
+    # ===== SUMMARY TEXT UPDATED with the new total line =====
+    summary_text = (
+        f"🏦 សរុបទាំងអស់:\n"
+        f"`៛ {khr:,.0f}`\n"
+        f"`$ {usd:,.2f}`\n"
+        f"លុយសរុប `៛ {total_in_khr:,.0f}`"
+    )
     
     try:
         bot.delete_message(message.chat.id, message.message_id)
@@ -189,7 +189,11 @@ def handle_transaction_message(message):
             transactions.setdefault(chat_id, []).append(trx)
         save_data(transactions)
 
-        if message.forward_from or message.forward_from_chat:
+        # Define keywords that identify a detailed bank message.
+        is_detailed_message = "paid by" in message.text.lower() or "payway" in message.text.lower()
+
+        # Only delete the message if it's a forwarded message OR a detailed bank message.
+        if message.forward_from or message.forward_from_chat or is_detailed_message:
             try:
                 bot.delete_message(chat_id, message.message_id)
             except Exception as e:
