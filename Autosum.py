@@ -41,7 +41,8 @@ transactions = load_data()
 # --- Regex Patterns ---
 riel_pattern = re.compile(r"៛([\d,]+)")
 usd_pattern = re.compile(r"\$([\d,.]+)")
-aba_khr_pattern = re.compile(r"^([\d,]+)\s+paid by.*KHQR", re.IGNORECASE | re.DOTALL)
+# This pattern is now un-anchored (no '^') and non-greedy (.*?) to find all occurrences
+aba_khr_pattern = re.compile(r"([\d,]+)\s+paid by.*?KHQR", re.IGNORECASE | re.DOTALL)
 payway_pattern = re.compile(r"PayWay by ABA.*?៛([\d,]+)\s+paid by", re.IGNORECASE | re.DOTALL)
 time_pattern = re.compile(r"\[(.*?)\]")
 
@@ -56,50 +57,59 @@ def create_main_keyboard():
     return markup
 
 
-def parse_transaction(text):
-    """Parses text to find a transaction, returning a dictionary or None."""
-    currency, amount = None, None
+# ===== FUNCTION COMPLETELY REWRITTEN to handle multiple transactions in one message =====
+def parse_transactions(text):
+    """Parses text to find ALL transactions, sums them by currency, and returns a list of total transactions."""
+    total_khr = 0
+    total_usd = 0
     trx_time = datetime.now()
+    
+    # Create a mutable copy of the text to work with
+    remaining_text = text
 
-    match_aba_khqr = aba_khr_pattern.search(text)
-    match_payway = payway_pattern.search(text)
-
-    # ===== LOGIC CHANGE: Check for the more specific PayWay format FIRST =====
-    # This ensures that PayWay messages are always handled by the correct logic.
-    if match_payway:
-        amount_str = match_payway.group(1).replace(",", "")
-        amount = int(amount_str)
-        currency = "KHR"
-    elif match_aba_khqr:
-        amount_str = match_aba_khqr.group(1).replace(",", "")
-        amount = int(amount_str)
-        currency = "KHR"
-    else:
-        # Fallback to generic patterns if the specific ones don't match
-        match_riel = riel_pattern.search(text)
-        if match_riel:
-            amount_str = match_riel.group(1).replace(",", "")
-            amount = int(amount_str)
-            currency = "KHR"
-        elif usd_pattern.search(text):
-            match_usd = usd_pattern.search(text)
-            amount_str = match_usd.group(1).replace(",", "")
-            amount = float(amount_str)
-            currency = "USD"
-
+    # Extract time first from the original text
     match_time = time_pattern.search(text)
     if match_time:
         try:
-            # Attempt to parse the timestamp from the message
             trx_time = datetime.strptime(match_time.group(1), "%m/%d/%Y %I:%M %p")
         except ValueError:
-            # If parsing fails, use the current time
-            pass
+            pass # Use datetime.now() if parsing fails
 
-    if currency and amount is not None:
-        return {"amount": amount, "currency": currency, "time": trx_time.isoformat()}
+    # 1. Find all specific "PayWay" transactions first.
+    payway_matches = payway_pattern.findall(remaining_text)
+    for amount_str in payway_matches:
+        total_khr += int(amount_str.replace(",", ""))
+    # Remove these found transactions from the text to avoid double-counting
+    remaining_text = payway_pattern.sub("", remaining_text)
 
-    return None
+    # 2. Find all symbol-less "ABA KHQR" transactions from the remaining text.
+    aba_khqr_matches = aba_khr_pattern.findall(remaining_text)
+    for amount_str in aba_khqr_matches:
+        total_khr += int(amount_str.replace(",", ""))
+    # Remove these as well
+    remaining_text = aba_khr_pattern.sub("", remaining_text)
+
+    # 3. Find any other generic KHR transactions (៛) from what's left.
+    riel_matches = riel_pattern.findall(remaining_text)
+    for amount_str in riel_matches:
+        total_khr += int(amount_str.replace(",", ""))
+
+    # 4. Find all USD transactions. This can be done on the original text as it doesn't overlap with KHR.
+    usd_matches = usd_pattern.findall(text)
+    for amount_str in usd_matches:
+        total_usd += float(amount_str.replace(",", ""))
+
+    # --- Build the final list of transactions from the summed totals ---
+    transactions_found = []
+    time_iso = trx_time.isoformat()
+
+    if total_khr > 0:
+        transactions_found.append({"amount": total_khr, "currency": "KHR", "time": time_iso})
+    
+    if total_usd > 0:
+        transactions_found.append({"amount": total_usd, "currency": "USD", "time": time_iso})
+
+    return transactions_found
 
 
 def get_summary(chat_id):
@@ -128,13 +138,12 @@ def send_welcome(message):
 
 
 @bot.message_handler(commands=['reset'])
-@bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ \(Reset\)")
+@bot.message_handler(regexp=r"� លុបទិន្នន័យ \(Reset\)")
 def handle_reset(message):
     """Clears all transaction data for the user."""
-    # First, determine the reply text
     if message.chat.id in transactions:
         transactions.pop(message.chat.id)
-        save_data(transactions)  # Save changes to file
+        save_data(transactions)
         reply_text = "✅ ទិន្នន័យទាំងអស់របស់អ្នកត្រូវបានលុបចោល។"
     else:
         reply_text = "ℹ️ អ្នកមិនមានទិន្នន័យសម្រាប់លុបទេ។"
@@ -144,7 +153,6 @@ def handle_reset(message):
     except Exception as e:
         print(f"Could not delete message {message.message_id} in chat {message.chat.id}. Error: {e}")
         
-    # Finally, send the confirmation as a new message
     bot.send_message(message.chat.id, reply_text, reply_markup=create_main_keyboard())
 
 
@@ -162,15 +170,18 @@ def summary_all(message):
     bot.send_message(message.chat.id, summary_text, parse_mode='Markdown')
 
 
+# ===== HANDLER UPDATED to process a list of transactions =====
 @bot.message_handler(func=lambda m: True)
 def handle_transaction_message(message):
     """Main handler to process potential transaction messages."""
     chat_id = message.chat.id
-    transaction = parse_transaction(message.text)
+    # The function now returns a list of summed transactions (usually one for KHR, one for USD)
+    found_transactions = parse_transactions(message.text)
 
-    if transaction:
-        # Add the new transaction and save the updated data
-        transactions.setdefault(chat_id, []).append(transaction)
+    if found_transactions:
+        # Loop through the list and append each transaction
+        for trx in found_transactions:
+            transactions.setdefault(chat_id, []).append(trx)
         save_data(transactions)
 
         # Automatically delete the forwarded message for privacy and cleanliness
