@@ -7,8 +7,9 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 # --- Configuration ---
 
-# 1. Securely get the token from an environment variable
-BOT_TOKEN = os.getenv("8053556928:AAHdY_7-UISDw5YoIZyCEM_t5zHultdSLnc")
+# 1. Securely get the token from an environment variable.
+#    The string inside getenv() must be the NAME of the variable, not the token itself.
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("Error: BOT_TOKEN environment variable not set.")
 
@@ -130,7 +131,7 @@ def handle_reset(message):
 
 
 # FIX: Use a raw string (r"...") to prevent SyntaxWarning
-@bot.message_handler(regexp=r"🏦 សរុបទាំងអស់ \(All\)")
+@bot.message_handler(regexp=r"� សរុបទាំងអស់ \(All\)")
 def summary_all(message):
     """Provides a summary of all recorded transactions."""
     khr, usd = get_summary(message.chat.id)
