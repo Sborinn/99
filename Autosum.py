@@ -42,6 +42,8 @@ transactions = load_data()
 riel_pattern = re.compile(r"៛([\d,]+)")
 usd_pattern = re.compile(r"\$([\d,.]+)")
 aba_khr_pattern = re.compile(r"^([\d,]+)\s+paid by.*KHQR", re.IGNORECASE | re.DOTALL)
+# ===== NEW PATTERN ADDED HERE for PayWay messages =====
+payway_pattern = re.compile(r"PayWay by ABA.*?៛([\d,]+)\s+paid by", re.IGNORECASE | re.DOTALL)
 time_pattern = re.compile(r"\[(.*?)\]")
 
 
@@ -61,8 +63,16 @@ def parse_transaction(text):
     trx_time = datetime.now()
 
     match_aba_khr = aba_khr_pattern.search(text)
+    # Search for the new PayWay pattern
+    match_payway = payway_pattern.search(text)
+
     if match_aba_khr:
         amount_str = match_aba_khr.group(1).replace(",", "")
+        amount = int(amount_str)
+        currency = "KHR"
+    # ===== NEW LOGIC BLOCK ADDED HERE to handle PayWay messages =====
+    elif match_payway:
+        amount_str = match_payway.group(1).replace(",", "")
         amount = int(amount_str)
         currency = "KHR"
     else:
