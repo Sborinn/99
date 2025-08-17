@@ -49,7 +49,7 @@ def create_main_keyboard():
     """Creates the main reply keyboard."""
     markup = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn_all = KeyboardButton("🏦 សរុបទាំងអស់ (All)")
-    btn_clear = KeyboardButton("🗑️ សម្អាត (Clear)")
+    btn_clear = KeyboardButton("🔄 លុបទិន្នន័យ (Reset)")
     
     # The "Reset" button has been removed.
     markup.add(btn_all, btn_clear) 
@@ -128,7 +128,7 @@ def summary_all(message):
     bot.reply_to(message, f"🏦 សរុបទាំងអស់:\n៛ {khr:,.0f}\n$ {usd:,.2f}")
 
 
-@bot.message_handler(regexp=r"🗑️ សម្អាត \(Clear\)")
+@bot.message_handler(regexp=r"🔄 លុបទិន្នន័យ\(Reset\)")
 def handle_clear(message):
     """Deletes the user's 'Clear' command message."""
     # Note: A bot cannot delete the entire chat history for a user.
@@ -163,7 +163,7 @@ def handle_transaction_message(message):
     else:
         # Improved User Experience: Respond to messages that are not transactions or buttons.
         # ===== UPDATED LIST OF BUTTONS =====
-        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🗑️ សម្អាត (Clear)"]
+        button_texts = ["🏦 សរុបទាំងអស់ (All)", "🔄 លុបទិន្នន័យ (Reset)"]
         if message.text not in button_texts:
             bot.reply_to(message, "🤔 ខ្ញុំមិនយល់សារនេះទេ។ សូមបញ្ជូនសារប្រតិបត្តិការពីធនាគារ។\n(I didn't understand that. Please forward a transaction message.)")
 
@@ -171,3 +171,4 @@ def handle_transaction_message(message):
 # --- Start the Bot ---
 print("🤖 Bot is running...")
 bot.infinity_polling()
+
